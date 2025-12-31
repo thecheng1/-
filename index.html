@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大明湖 - 老殘遊記大富翁</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+TC:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'classic-red': '#B22222',
+                        'classic-gold': '#DAA520',
+                        'paper-bg': '#FDF5E6',
+                        'lake-blue': '#4682B4'
+                    },
+                    fontFamily: {
+                        'serif': ['"Noto Serif TC"', 'serif'],
+                        'calligraphy': ['"Ma Shan Zheng"', 'cursive']
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-paper-bg text-gray-800 font-serif h-screen overflow-hidden flex flex-col">
+
+    <!-- Header -->
+    <header
+        class="bg-classic-red text-paper-bg p-4 shadow-lg z-10 border-b-4 border-classic-gold flex justify-between items-center">
+        <h1 class="text-3xl md:text-4xl text-center font-calligraphy tracking-widest flex-1">大明湖 - 老殘遊記大富翁</h1>
+        <button id="sound-btn" class="text-2xl p-2 hover:text-classic-gold transition-colors" title="切換聲音">
+            🔊
+        </button>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="flex-1 relative flex items-center justify-center overflow-hidden p-4">
+
+        <!-- Game Board Container -->
+        <div id="game-board" class="relative glass-panel rounded-xl backdrop-blur-sm"
+            style="width: 800px; height: 600px;">
+            <!-- Background Image will be set via CSS/JS -->
+            <div id="board-bg" class="absolute inset-0 opacity-60 bg-center bg-cover rounded-lg"></div>
+
+            <!-- Path/Nodes will be generated here -->
+            <div id="nodes-container" class="absolute inset-0 z-10"></div>
+
+            <!-- Players -->
+            <div id="players-container" class="absolute inset-0 pointer-events-none z-20"></div>
+
+            <!-- Center Info / Dice -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                <div
+                    class="glass-panel p-6 rounded-lg text-center pointer-events-auto border border-lake-blue/30 max-w-sm">
+                    <div id="turn-indicator" class="text-2xl font-bold mb-4 text-classic-red font-calligraphy">輪到：玩家 1
+                    </div>
+                    <div id="message-display"
+                        class="mb-4 h-16 flex items-center justify-center text-base italic text-gray-700 font-medium px-2">
+                        歡迎來到濟南府！請擲骰子開始旅程。
+                    </div>
+                    <button id="roll-btn"
+                        class="text-white font-bold py-3 px-8 rounded-full shadow-lg text-xl tracking-wider">
+                        擲骰子
+                    </button>
+                    <div id="dice-result" class="mt-4 text-5xl font-calligraphy text-classic-gold h-14 drop-shadow-md">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Stats Sidebar (Floating) -->
+        <div class="absolute top-4 right-4 md:right-10 flex flex-col gap-3 w-56">
+            <div id="p1-card" class="player-card p-3 rounded shadow-md border-l-red-500">
+                <div class="font-bold text-lg">玩家 1 (老殘)</div>
+                <div class="text-green-700 font-mono text-lg">💰 $<span id="p1-money">1000</span></div>
+            </div>
+            <div id="p2-card" class="player-card p-3 rounded shadow-md border-l-blue-500">
+                <div class="font-bold text-lg">玩家 2 (鐵鉉)</div>
+                <div class="text-green-700 font-mono text-lg">💰 $<span id="p2-money">1000</span></div>
+            </div>
+            <div id="p3-card" class="player-card p-3 rounded shadow-md border-l-yellow-500">
+                <div class="font-bold text-lg">玩家 3 (杜甫)</div>
+                <div class="text-green-700 font-mono text-lg">💰 $<span id="p3-money">1000</span></div>
+            </div>
+            <div id="p4-card" class="player-card p-3 rounded shadow-md border-l-purple-500">
+                <div class="font-bold text-lg">玩家 4 (黃花)</div>
+                <div class="text-green-700 font-mono text-lg">💰 $<span id="p4-money">1000</span></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal for Questions/Cards -->
+    <div id="modal-overlay"
+        class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="modal-content-box p-8 rounded-xl shadow-2xl max-w-lg w-full border-4 border-classic-gold relative">
+            <h2 id="modal-title"
+                class="text-3xl font-calligraphy text-classic-red mb-6 text-center border-b-2 border-classic-gold/30 pb-2">
+                題目</h2>
+            <div id="modal-content" class="text-lg mb-8 leading-relaxed font-serif"></div>
+            <div id="modal-options" class="flex flex-col gap-4">
+                <!-- Options will be injected here -->
+            </div>
+            <button id="modal-close"
+                class="hidden mt-6 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-full w-full transition shadow-md">
+                關閉
+            </button>
+        </div>
+    </div>
+
+    <!-- Background Music/Sound Controls (Optional UI) -->
+    <!-- <div class="absolute bottom-2 right-2 text-xs text-gray-400">Ver 1.0</div> -->
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
