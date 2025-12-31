@@ -352,8 +352,17 @@ function handleChance() {
     const deck = isDestiny ? GAME_DATA.destinyCards : GAME_DATA.chanceCards;
     const card = deck[Math.floor(Math.random() * deck.length)];
 
+    let content = `<div class="text-center text-xl font-bold py-4">${card.text}</div>`;
+
+    if (card.effect === 'money') {
+        const amount = card.value;
+        const colorClass = amount >= 0 ? 'text-green-600' : 'text-red-600';
+        const actionText = amount >= 0 ? '獲得' : '支付';
+        content += `<div class="text-center text-2xl font-bold ${colorClass} mt-2">${actionText} $${Math.abs(amount)}</div>`;
+    }
+
     showModal(isDestiny ? '命運' : '機會',
-        `<div class="text-center text-xl font-bold py-4">${card.text}</div>`,
+        content,
         [{ text: '確定', action: () => applyCardEffect(card) }]
     );
 }
