@@ -8,7 +8,8 @@ const state = {
     currentPlayerIndex: 0,
     properties: {}, // Map location ID to player ID
     isMoving: false,
-    audioEnabled: true
+    audioEnabled: true,
+    usedQuestionIndices: []
 };
 
 const UI = {
@@ -290,7 +291,14 @@ function handleProperty(location) {
             showModal('購買景點/地產',
                 `<div class="text-center"><div class="font-bold text-xl mb-2">${location.name}</div>${location.description}<div class="mt-4 p-4 bg-yellow-50 rounded-lg"><div>價格: <span class="text-red-600 font-bold">$${location.price}</span></div><div>過路費: $${location.rent}</div></div></div>`,
                 [
-                    { text: '購買/贊助', action: () => buyProperty(location) },
+                    {
+                        text: '購買/贊助', action: () => {
+                            closeModal();
+                            setTimeout(() => {
+                                askQuestion(() => buyProperty(location));
+                            }, 300);
+                        }
+                    },
                     { text: '放棄', action: () => endTurn() }
                 ]
             );
@@ -334,12 +342,8 @@ function buyProperty(location) {
 
     closeModal();
 
-    // High chance for question to encourage interaction
-    if (Math.random() > 0.3) {
-        setTimeout(askQuestion, 500);
-    } else {
-        endTurn();
-    }
+    // High chance for question removed as requested (moved to pre-purchase)
+    endTurn();
 }
 
 function handleChance() {
@@ -386,8 +390,31 @@ function applyCardEffect(card) {
     endTurn();
 }
 
-function askQuestion() {
-    const qData = GAME_DATA.questions[Math.floor(Math.random() * GAME_DATA.questions.length)];
+function askQuestion(onSuccess = null) {
+    const totalQuestions = GAME_DATA.questions.length;
+    let availableIndices = [];
+
+    // Find unused indices
+    for (let i = 0; i < totalQuestions; i++) {
+        if (!state.usedQuestionIndices.includes(i)) {
+            availableIndices.push(i);
+        }
+    }
+
+    // Reset if all used
+    if (availableIndices.length === 0) {
+        state.usedQuestionIndices = [];
+        for (let i = 0; i < totalQuestions; i++) availableIndices.push(i);
+    }
+
+    // Pick random from available
+    const randomIndex = Math.floor(Math.random() * availableIndices.length);
+    const qIndex = availableIndices[randomIndex];
+
+    // Mark as used
+    state.usedQuestionIndices.push(qIndex);
+
+    const qData = GAME_DATA.questions[qIndex];
 
     UI.modal.overlay.classList.remove('hidden');
     UI.modal.title.textContent = '國語文問答挑戰';
@@ -408,28 +435,42 @@ function askQuestion() {
             // EXCEPT "answer: 1" for options where index 1 is correct.
             // Let's use exact match.
 
-            checkAnswer(index, qData.answer, qData.explanation);
+            checkAnswer(index, qData.answer, qData.explanation, onSuccess);
         };
         UI.modal.options.appendChild(btn);
     });
 }
 
-function checkAnswer(selectedIndex, correctIndex, explanation) {
+function checkAnswer(selectedIndex, correctIndex, explanation, onSuccess) {
     if (selectedIndex === correctIndex) {
         SoundManager.playGood();
-        UI.modal.content.innerHTML = `<div><div class="text-green-600 font-bold text-2xl text-center mb-4">答對了！</div><div class="bg-green-50 p-4 rounded">${explanation}</div><br><div class="text-center font-bold text-xl text-classic-gold">獎勵: $100</div></div>`;
-        state.players[state.currentPlayerIndex].money += 100;
-        updatePlayerStats();
+
+        if (onSuccess) {
+            UI.modal.content.innerHTML = `<div><div class="text-green-600 font-bold text-2xl text-center mb-4">答對了！</div><div class="bg-green-50 p-4 rounded">${explanation}</div><br><div class="text-center font-bold text-xl text-blue-600">獲得購買資格！</div></div>`;
+            setTimeout(() => {
+                onSuccess();
+            }, 1500);
+        } else {
+            UI.modal.content.innerHTML = `<div><div class="text-green-600 font-bold text-2xl text-center mb-4">答對了！</div><div class="bg-green-50 p-4 rounded">${explanation}</div><br><div class="text-center font-bold text-xl text-classic-gold">獎勵: $100</div></div>`;
+            state.players[state.currentPlayerIndex].money += 100;
+            updatePlayerStats();
+
+            UI.modal.close.classList.remove('hidden');
+            UI.modal.close.onclick = () => {
+                closeModal();
+                endTurn();
+            };
+        }
     } else {
         SoundManager.playBad();
-        UI.modal.content.innerHTML = `<div><div class="text-red-600 font-bold text-2xl text-center mb-4">答錯了。</div><div class="bg-red-50 p-4 rounded">${explanation}</div></div>`;
-    }
+        UI.modal.content.innerHTML = `<div><div class="text-red-600 font-bold text-2xl text-center mb-4">答錯了。</div><div class="bg-red-50 p-4 rounded">${explanation}</div>${onSuccess ? '<br><div class="text-center font-bold text-red-500">無法購買。</div>' : ''}</div>`;
 
-    UI.modal.close.classList.remove('hidden');
-    UI.modal.close.onclick = () => {
-        closeModal();
-        endTurn();
-    };
+        UI.modal.close.classList.remove('hidden');
+        UI.modal.close.onclick = () => {
+            closeModal();
+            endTurn();
+        };
+    }
 }
 
 function closeModal() {
